@@ -34,6 +34,7 @@ print(predictions)
 
 This is what we get (results vary between runs):
 
+```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃        Test metric        ┃       DataLoader 0        ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
@@ -44,3 +45,5 @@ This is what we get (results vary between runs):
 └───────────────────────────┴───────────────────────────┘
 
 [['REFUTE', 'REFUTE', 'REFUTE', 'NEI', 'NEI', 'SUPPORT', 'SUPPORT', 'SUPPORT', 'SUPPORT']]
+```
+
