@@ -75,7 +75,8 @@ class SciFactDataModule(pl.LightningDataModule):
             # Prepare data
             train_data = get_data("train")
             self.train_dataset = PyversDataset(train_data, self.model_name, self.max_length)
-            val_data = get_data("val")
+            # The validation set is also known as the dev set
+            val_data = get_data("dev")
             self.val_dataset = PyversDataset(val_data, self.model_name, self.max_length)
 
         # Assign test dataset for use in dataloader
@@ -109,55 +110,55 @@ class EasyDataModule(pl.LightningDataModule):
     def setup(self, stage=None): 
 
         # Assign train/val datasets for use in dataloaders
-        if stage == "fit":
-            train_data = {
-                "evidences": [
-                    # SUPPORT
-                    "All plants are red.", "All plants are green.", "All plants are blue.", "All cars are red.",
-                    # NEI
-                    "All cars are red.", "All cars are green.", "All cars are blue.",
-                    "All cars are red.", "All cars are green.", "All cars are blue.",
-                    # REFUTE
-                    "All plants are red.", "All plants are green.", "All plants are blue.", "All cars are red.",
-                ],
-                "claims": [
-                    # SUPPORT
-                    "This plant is red.", "This plant is green.", "This plant is blue.", "This car is red.",
-                    # NEI
-                    "This plant is green.", "This plant is blue.", "This plant is red.",
-                    "This plant is red.", "This plant is green.", "This plant is blue.",
-                    # REFUTE
-                    "This plant is green.", "This plant is blue.", "This plant is red.", "This car is green.",
-                ],
-                "labels": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2]
-            }
-            self.train_dataset = PyversDataset(train_data, self.model_name, max_length=self.max_length)
+        train_data = {
+            "evidences": [
+                # SUPPORT
+                "All plants are red.", "All plants are green.", "All plants are blue.", "All cars are red.",
+                # NEI
+                "All cars are red.", "All cars are green.", "All cars are blue.",
+                "All cars are red.", "All cars are green.", "All cars are blue.",
+                # REFUTE
+                "All plants are red.", "All plants are green.", "All plants are blue.", "All cars are red.",
+            ],
+            "claims": [
+                # SUPPORT
+                "This plant is red.", "This plant is green.", "This plant is blue.", "This car is red.",
+                # NEI
+                "This plant is green.", "This plant is blue.", "This plant is red.",
+                "This plant is red.", "This plant is green.", "This plant is blue.",
+                # REFUTE
+                "This plant is green.", "This plant is blue.", "This plant is red.", "This car is green.",
+            ],
+            "labels": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2]
+        }
+        self.train_dataset = PyversDataset(train_data, self.model_name, max_length=self.max_length)
 
-        # Assign test dataset for use in dataloader
-        if stage == "test":
-            test_data = {
-                "evidences": [
-                    # SUPPORT
-                    "All plants are red.", "All plants are yellow.", "All cars are yellow.",
-                    # NEI
-                    "All cars are red.", "All cars are red.", "All plants are yellow.",
-                    # REFUTE
-                    "All plants are red.", "All plants are red.", "All cars are red.",
-                ],
-                "claims": [
-                    # SUPPORT
-                    "This plant is red.", "This plant is yellow.", "This car is yellow.",
-                    # NEI
-                    "This plant is blue.", "This plant is yellow.", "This car is yellow.",
-                    # REFUTE
-                    "This plant is blue.", "This plant is yellow.", "This car is yellow.",
-                ],
-                "labels": [0, 0, 0, 1, 1, 1, 2, 2, 2]
-            }
-            self.test_dataset = PyversDataset(test_data, self.model_name, max_length=self.max_length)
+        test_data = {
+            "evidences": [
+                # SUPPORT
+                "All plants are red.", "All plants are yellow.", "All cars are yellow.",
+                # NEI
+                "All cars are red.", "All cars are red.", "All plants are yellow.",
+                # REFUTE
+                "All plants are red.", "All plants are red.", "All cars are red.",
+            ],
+            "claims": [
+                # SUPPORT
+                "This plant is red.", "This plant is yellow.", "This car is yellow.",
+                # NEI
+                "This plant is blue.", "This plant is yellow.", "This car is yellow.",
+                # REFUTE
+                "This plant is blue.", "This plant is yellow.", "This car is yellow.",
+            ],
+            "labels": [0, 0, 0, 1, 1, 1, 2, 2, 2]
+        }
+        self.test_dataset = PyversDataset(test_data, self.model_name, max_length=self.max_length)
 
     def train_dataloader(self): 
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+  
+    def val_dataloader(self): 
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
   
     def test_dataloader(self): 
         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)

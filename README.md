@@ -51,10 +51,20 @@ This is what we get (results vary between runs):
 # [['SUPPORT', 'SUPPORT', 'SUPPORT', 'NEI', 'NEI', 'NEI', 'REFUTE', 'REFUTE', 'REFUTE']]
 ```
 
-## Changing the model; Zero-shot predictions
+## Label to ID mapping
 
-The label-to-id mapping in pyvers is `{"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}`.
-The IDs match the ordering of label names (`["entailment", "neutral", "contradiction"]`) in a [DeBERTa model trained on MultiNLI, Fever-NLI and Adversarial-NLI (ANLI)](https://huggingface.co/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli), so we can use this model for zero-shot classification of claim-evidence pairs.
+| ID | pyvers  | [Fever](https://huggingface.co/datasets/fever/fever)* | [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli), [ANLI](https://huggingface.co/datasets/facebook/anli) |
+| - | - | - | - |
+| 0  | SUPPORT | SUPPORTS        | entailment |
+| 1  | NEI     | NOT ENOUGH INFO | neutral |
+| 2  | REFUTE  | REFUTES         | contradiction |
+
+\* Text labels only
+
+## Changing the model
+
+This uses a [DeBERTa model trained on MultiNLI, Fever-NLI and Adversarial-NLI (ANLI)](https://huggingface.co/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli) for zero-shot classification of claim-evidence pairs.
+For other models, check that the mapping between labels and IDs is the same.
 
 ```
 dm = EasyDataModule("MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli")
@@ -66,4 +76,5 @@ print(predictions)
 # [['SUPPORT', 'SUPPORT', 'SUPPORT', 'REFUTE', 'REFUTE', 'REFUTE', 'REFUTE', 'REFUTE', 'REFUTE']]
 ```
 
-This model misses NEIs but can distinguish between SUPPORT and REFUTE without fine-tuning on the Easy dataset.
+The pretrained model successfully distinguishes between SUPPORT and REFUTE on the Easy dataset but misclassifies NEI as REFUTE.
+This can be improved with fine-tuning.
