@@ -5,6 +5,7 @@ import torchmetrics
 from torch.utils.tensorboard import SummaryWriter
 from transformers import (
     AutoModelForSequenceClassification,
+    AutoConfig,
     get_linear_schedule_with_warmup,
 )
 import numpy as np
@@ -14,11 +15,14 @@ class PyversClassifier(pl.LightningModule):
     def __init__(
         self, 
         model_name: str,
-        id2label: dict = {0:"SUPPORT", 1:"NEI", 2:"REFUTE"},
         learning_rate: float = 2e-5,
         adam_epsilon: float = 1e-8,
         weight_decay: float = 0.01,
         warmup_steps: int = 0,
+        hidden_dropout_prob: float = 0.1,
+        attention_probs_dropout_prob: float = 0.1,
+        id2label: dict = {0:"SUPPORT", 1:"NEI", 2:"REFUTE"},
+        label2id: dict = {"SUPPORT":0, "NEI":1, "REFUTE":2},
         **kwargs,
     ):
         super().__init__()
@@ -28,7 +32,19 @@ class PyversClassifier(pl.LightningModule):
         
         # Model
         num_classes = len(id2label)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_classes)
+        config = AutoConfig.from_pretrained(model_name, num_labels=num_classes)
+        config.hidden_dropout_prob = hidden_dropout_prob
+        config.attention_probs_dropout_prob = attention_probs_dropout_prob
+        config.id2label = id2label
+        config.label2id = label2id
+        # HuggingFace pretrained models are in eval mode by default (Dropout modules are deactivated)
+        #   https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained
+        # Lightning doesn't put the model in train mode at the beginning of training
+        #   https://github.com/Lightning-AI/pytorch-lightning/pull/18951
+        # We have to put the model in train mode to make dropout work
+        #   https://github.com/Lightning-AI/pytorch-lightning/issues/20105
+        #   https://github.com/Lightning-AI/pytorch-lightning/issues/20646
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=config).train()
 
         # Metrics
         self.train_accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes)
@@ -65,6 +81,28 @@ class PyversClassifier(pl.LightningModule):
         scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
         return [optimizer], [scheduler]
 
+    @staticmethod
+    def _percent(x):
+        ## TODO: How to log rounded values without extraneous decimals?
+        ## float16 avoids long decimals but is not precise enough to be of use.
+        #x_float16 = np.float16(x.detach().cpu().numpy())
+        #return round(100*x_float16, 2)
+        return torch.round(100*x, decimals=2)
+
+    def _log_metrics(self, train_or_val, accuracy, losses, writer):
+        # Compute and log accuracy
+        train_or_val_accuracy = self._percent(accuracy.compute())
+        self.log(f"{train_or_val}_accuracy", train_or_val_accuracy)
+        # Write accuracy to TensorBoard logger
+        writer.add_scalar("accuracy", train_or_val_accuracy, self.current_epoch)
+        accuracy.reset()
+        # Compute and log loss
+        train_or_val_loss = torch.stack([x for x in losses]).mean()
+        self.log(f"{train_or_val}_loss", train_or_val_loss, prog_bar=False)
+        # Write loss to TensorBoard logger
+        writer.add_scalar("loss", train_or_val_loss, self.current_epoch)
+        losses.clear()
+
     def training_step(self, batch, batch_idx):
         # Run the forward pass
         outputs = self(**batch)
@@ -79,18 +117,19 @@ class PyversClassifier(pl.LightningModule):
         return loss
 
     def on_train_epoch_end(self):
-        # Compute and log accuracy
-        train_accuracy = torch.round(100 * self.train_accuracy.compute(), decimals=0)
-        self.log("train_accuracy", train_accuracy)
-        # Write accuracy to TensorBoard logger
-        self.train_writer.add_scalar("accuracy", train_accuracy, self.current_epoch)
-        self.train_accuracy.reset()
-        # Compute and log loss
-        train_loss = torch.stack([x for x in self.train_losses]).mean()
-        self.log("train_loss", train_loss, prog_bar=False)
-        # Write loss to TensorBoard logger
-        self.train_writer.add_scalar("loss", train_loss, self.current_epoch)
-        self.train_losses.clear()
+        self._log_metrics("train", self.train_accuracy, self.train_losses, self.train_writer)
+#        # Compute and log accuracy
+#        train_accuracy = torch.round(100 * self.train_accuracy.compute(), decimals=2)
+#        self.log("train_accuracy", train_accuracy)
+#        # Write accuracy to TensorBoard logger
+#        self.train_writer.add_scalar("accuracy", train_accuracy, self.current_epoch)
+#        self.train_accuracy.reset()
+#        # Compute and log loss
+#        train_loss = torch.stack([x for x in self.train_losses]).mean()
+#        self.log("train_loss", train_loss, prog_bar=False)
+#        # Write loss to TensorBoard logger
+#        self.train_writer.add_scalar("loss", train_loss, self.current_epoch)
+#        self.train_losses.clear()
 
     def validation_step(self, batch, batch_idx):
         outputs = self(**batch)
@@ -102,7 +141,7 @@ class PyversClassifier(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         # Compute and log accuracy
-        val_accuracy = torch.round(100 * self.val_accuracy.compute(), decimals=0)
+        val_accuracy = self._percent(self.val_accuracy.compute())
         self.log("val_accuracy", val_accuracy)
         self.val_writer.add_scalar("accuracy", val_accuracy, self.current_epoch)
         self.val_accuracy.reset()
@@ -121,17 +160,17 @@ class PyversClassifier(pl.LightningModule):
 
     def on_test_epoch_end(self):
         test_accuracy = self.test_accuracy.compute()
-        self.log("Accuracy", torch.round(100*test_accuracy, decimals=0))
+        self.log("Accuracy", self._percent(test_accuracy))
         test_f1_micro = self.test_f1_micro.compute()
-        self.log("F1 Micro", torch.round(100*test_f1_micro, decimals=0))
+        self.log("F1 Micro", self._percent(test_f1_micro))
         test_f1_macro = self.test_f1_macro.compute()
-        self.log("F1 Macro", torch.round(100*test_f1_macro, decimals=0))
+        self.log("F1 Macro", self._percent(test_f1_macro))
         # Log F1 score for each class
         test_f1 = self.test_f1.compute()
         num_classes = len(self.hparams.id2label)
         for id in range(num_classes):
             label = self.hparams.id2label[id]
-            self.log(f"F1_{label}", torch.round(100*test_f1[id], decimals=0))
+            self.log(f"F1_{label}", self._percent(test_f1[id]))
         self.test_accuracy.reset()
         self.test_f1.reset()
 

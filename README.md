@@ -17,7 +17,7 @@ import pytorch_lightning as pl
 from pyvers.data import EasyDataModule
 from pyvers.model import PyversClassifier
 
-# Instantiate data and model
+# Initialize data and model
 dm = EasyDataModule("bert-base-uncased")
 model = PyversClassifier(dm.model_name)
 
@@ -28,7 +28,7 @@ trainer.fit(model, datamodule=dm)
 # Test model
 trainer.test(model, datamodule=dm)
 
-# Show the predictions
+# Show predictions
 predictions = trainer.predict(model, datamodule=dm)
 print(predictions)
 ```
