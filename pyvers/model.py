@@ -11,7 +11,6 @@ from transformers import (
 import numpy as np
 
 class PyversClassifier(pl.LightningModule):
-    # Use label IDs from MultiVerS
     def __init__(
         self, 
         model_name: str,
@@ -23,6 +22,7 @@ class PyversClassifier(pl.LightningModule):
         attention_probs_dropout_prob: float = 0.1,
         id2label: dict = {0:"SUPPORT", 1:"NEI", 2:"REFUTE"},
         label2id: dict = {"SUPPORT":0, "NEI":1, "REFUTE":2},
+        tensorboard_logdir: str = "tb_logs",
         **kwargs,
     ):
         super().__init__()
@@ -55,9 +55,8 @@ class PyversClassifier(pl.LightningModule):
         self.test_f1_macro = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="macro")
 
         # Log train and val metrics to different directories to plot them on one graph in TensorBoard
-        logdir = "tb_logs"
-        self.train_writer = SummaryWriter(os.path.join(logdir, "train"))
-        self.val_writer = SummaryWriter(os.path.join(logdir, "val"))
+        self.train_writer = SummaryWriter(os.path.join(self.hparams.tensorboard_logdir, "train"))
+        self.val_writer = SummaryWriter(os.path.join(self.hparams.tensorboard_logdir, "val"))
 
         self.train_losses = []
         self.val_losses = []

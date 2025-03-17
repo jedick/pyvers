@@ -3,6 +3,8 @@ import pytorch_lightning as pl
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 from multivers.data_train import SciFactReader
+# For reading data from jsonl files
+from .verisci import SciFactReader
 # HuggingFace datasets
 import datasets
 
@@ -13,7 +15,7 @@ import datasets
 # Fever:   label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
 
 class PyversDataset(Dataset):
-    def __init__(self, dataset, model_name, max_length=128):
+    def __init__(self, dataset, model_name, max_length):
         self.dataset = dataset
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.max_length = max_length
@@ -24,32 +26,29 @@ class PyversDataset(Dataset):
     def __getitem__(self, idx):
         encoding = self.tokenizer(
             # Tokenize a sequence pair as follows:
-            # [CLS] {evidence tokens} [SEP] {claim tokens} [SEP]
-            self.dataset["evidences"][idx],
+            # [CLS] {claim tokens} [SEP] {evidence tokens} [SEP]
             self.dataset["claims"][idx],
+            self.dataset["evidences"][idx],
             padding="max_length",
             max_length=self.max_length,
             return_tensors="pt",
-            # Only truncate the evidence, not the claim
-            truncation="only_first",
+            truncation="longest_first",
         )
         return {
-            # Try this instead?
-            #'input_ids': encoding['input_ids'].squeeze(),
-            #'attention_mask': encoding['attention_mask'].squeeze(),
-            #'labels': torch.tensor(item['label'])
             "input_ids": encoding["input_ids"].flatten(),
             "token_type_ids": encoding["token_type_ids"].flatten(),
             "attention_mask": encoding["attention_mask"].flatten(),
-            "labels": torch.tensor(self.dataset["labels"][idx], dtype=torch.long)
+            "labels": torch.tensor(self.dataset["labels"][idx], dtype=torch.long),
         }
 
-class SciFactDataModule(pl.LightningDataModule): 
-    def __init__(self, model_name, batch_size=32, max_length=512): 
+class FileDataModule(pl.LightningDataModule): 
+    def __init__(self, model_name, directory="data/scifact", batch_size=32, max_length=512, use_val_for_test=False): 
         super().__init__() 
         self.model_name = model_name
+        self.directory = directory
         self.batch_size = batch_size
         self.max_length = max_length
+        self.use_val_for_test = use_val_for_test
         self.num_workers = 4
           
     def prepare_data(self): 
@@ -57,10 +56,11 @@ class SciFactDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None): 
 
-        def get_data(split):
+        @staticmethod
+        def get_one_dataset(fold, directory):
             # Instantiate the data reader
-            reader = SciFactReader("data/scifact")
-            data = reader.get_text_data(split)
+            reader = SciFactReader(directory)
+            data = reader.get_text_data(fold)
             # Process data to get claims and evidence sentences
             claims = [item["to_tensorize"]["claim"] for item in data]
             evidences = [" ".join(item["to_tensorize"]["sentences"]) for item in data]
@@ -70,18 +70,36 @@ class SciFactDataModule(pl.LightningDataModule):
             ids = [label2id[label] for label in labels]
             return dict(evidences=evidences, claims=claims, labels=ids)
 
+        @staticmethod
+        def get_data(fold, directory):
+            # Put a single directory name into a list so we can iterate over it
+            if isinstance(directory, str):
+                directory = [directory]
+            # Get the data from one or more directories, as a list of dictionaries
+            all_data = [get_one_dataset(fold, dir) for dir in directory]
+            # Use dict comprehension to combine the lists for each dictionary key
+            all_data = {k: [d[k] for d in all_data] for k in all_data[0]}
+            # Use list comprehension to flatten the lists for each dictionary key
+            all_data = {k: [item for sublist in all_data[k] for item in sublist] for k in all_data}
+            return all_data
+
         # Assign train/val datasets for use in dataloaders
         if stage == "fit":
             # Prepare data
-            train_data = get_data("train")
+            train_data = get_data("train", self.directory)
             self.train_dataset = PyversDataset(train_data, self.model_name, self.max_length)
-            # The validation set is also known as the dev set
-            val_data = get_data("dev")
+            # The validation set is called the dev set in the SciFact paper
+            val_data = get_data("dev", self.directory)
             self.val_dataset = PyversDataset(val_data, self.model_name, self.max_length)
 
         # Assign test dataset for use in dataloader
         if stage == "test":
-            test_data = get_data("test")
+            # If labels for the test set aren't available, we can calculate metrics with the validation set instead
+            if(self.use_val_for_test):
+                test_data = get_data("dev", self.directory)
+            else:
+                test_data = get_data("test", self.directory)
+            
             self.test_dataset = PyversDataset(test_data, self.model_name, self.max_length)
 
     def train_dataloader(self): 
@@ -96,7 +114,7 @@ class SciFactDataModule(pl.LightningDataModule):
     def predict_dataloader(self): 
         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
-class EasyDataModule(pl.LightningDataModule): 
+class ToyDataModule(pl.LightningDataModule): 
     def __init__(self, model_name, batch_size=32, max_length=32): 
         super().__init__() 
         self.model_name = model_name
@@ -183,12 +201,12 @@ class FeverDataModule(pl.LightningDataModule):
         # Load the dataset
         dataset = datasets.load_dataset(self.dataset_name)
 
-        def get_data(split):
-            claims = split["claim"]
+        def get_data(fold):
+            claims = fold["claim"]
             # The evidence list includes the page title, but we just want the evidence sentences
-            evidences = [item[0][2] for item in split["evidence"]]
+            evidences = [item[0][2] for item in fold["evidence"]]
             label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
-            labels = [label2id[label] for label in split["label"]]
+            labels = [label2id[label] for label in fold["label"]]
             return {"claims":claims, "evidences":evidences, "labels":labels}
 
         if stage == "fit":
