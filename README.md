@@ -96,6 +96,9 @@ This uses a [DeBERTa model trained on MultiNLI, Fever-NLI and Adversarial-NLI (A
 For other models, check that the mapping between labels and IDs is the same.
 
 ```
+import pytorch_lightning as pl
+from pyvers.model import PyversClassifier
+from pyvers.data import ToyDataModule
 dm = ToyDataModule("MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli")
 model = PyversClassifier(dm.model_name)
 trainer = pl.Trainer()

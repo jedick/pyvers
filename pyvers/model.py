@@ -27,7 +27,7 @@ class PyversClassifier(pl.LightningModule):
     ):
         super().__init__()
 
-        # Save hyperparameters (self.hparams)
+        # Save hyperparameters (lets us use self.hparams)
         self.save_hyperparameters()
         
         # Model
@@ -53,6 +53,8 @@ class PyversClassifier(pl.LightningModule):
         self.test_f1 = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average=None)
         self.test_f1_micro = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="micro")
         self.test_f1_macro = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="macro")
+        self.test_AUROC_macro = torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="macro")
+        self.test_AUROC_weighted = torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="weighted")
 
         # Log train and val metrics to different directories to plot them on one graph in TensorBoard
         self.train_writer = SummaryWriter(os.path.join(self.hparams.tensorboard_logdir, "train"))
@@ -117,18 +119,6 @@ class PyversClassifier(pl.LightningModule):
 
     def on_train_epoch_end(self):
         self._log_metrics("train", self.train_accuracy, self.train_losses, self.train_writer)
-#        # Compute and log accuracy
-#        train_accuracy = torch.round(100 * self.train_accuracy.compute(), decimals=2)
-#        self.log("train_accuracy", train_accuracy)
-#        # Write accuracy to TensorBoard logger
-#        self.train_writer.add_scalar("accuracy", train_accuracy, self.current_epoch)
-#        self.train_accuracy.reset()
-#        # Compute and log loss
-#        train_loss = torch.stack([x for x in self.train_losses]).mean()
-#        self.log("train_loss", train_loss, prog_bar=False)
-#        # Write loss to TensorBoard logger
-#        self.train_writer.add_scalar("loss", train_loss, self.current_epoch)
-#        self.train_losses.clear()
 
     def validation_step(self, batch, batch_idx):
         outputs = self(**batch)
@@ -139,15 +129,7 @@ class PyversClassifier(pl.LightningModule):
         self.val_accuracy.update(outputs.logits, y)
 
     def on_validation_epoch_end(self):
-        # Compute and log accuracy
-        val_accuracy = self._percent(self.val_accuracy.compute())
-        self.log("val_accuracy", val_accuracy)
-        self.val_writer.add_scalar("accuracy", val_accuracy, self.current_epoch)
-        self.val_accuracy.reset()
-        val_loss = torch.stack([x for x in self.val_losses]).mean()
-        self.log("val_loss", val_loss, prog_bar=False)
-        self.val_writer.add_scalar("loss", val_loss, self.current_epoch)
-        self.val_losses.clear()
+        self._log_metrics("val", self.val_accuracy, self.val_losses, self.val_writer)
 
     def test_step(self, batch, batch_idx):
         outputs = self(**batch)
@@ -156,6 +138,8 @@ class PyversClassifier(pl.LightningModule):
         self.test_f1.update(outputs.logits, y)
         self.test_f1_micro.update(outputs.logits, y)
         self.test_f1_macro.update(outputs.logits, y)
+        self.test_AUROC_macro.update(outputs.logits, y)
+        self.test_AUROC_weighted.update(outputs.logits, y)
 
     def on_test_epoch_end(self):
         test_accuracy = self.test_accuracy.compute()
@@ -164,6 +148,10 @@ class PyversClassifier(pl.LightningModule):
         self.log("F1 Micro", self._percent(test_f1_micro))
         test_f1_macro = self.test_f1_macro.compute()
         self.log("F1 Macro", self._percent(test_f1_macro))
+        test_AUROC_macro = self.test_AUROC_macro.compute()
+        self.log("AUROC Macro", test_AUROC_macro)
+        test_AUROC_weighted = self.test_AUROC_weighted.compute()
+        self.log("AUROC Weighted", test_AUROC_weighted)
         # Log F1 score for each class
         test_f1 = self.test_f1.compute()
         num_classes = len(self.hparams.id2label)
@@ -172,6 +160,10 @@ class PyversClassifier(pl.LightningModule):
             self.log(f"F1_{label}", self._percent(test_f1[id]))
         self.test_accuracy.reset()
         self.test_f1.reset()
+        self.test_f1_micro.reset()
+        self.test_f1_macro.reset()
+        self.test_AUROC_macro.reset()
+        self.test_AUROC_weighted.reset()
 
     def predict_step(self, batch, batch_idx):
         outputs = self(**batch)

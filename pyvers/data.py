@@ -27,8 +27,10 @@ class PyversDataset(Dataset):
         encoding = self.tokenizer(
             # Tokenize a sequence pair as follows:
             # [CLS] {claim tokens} [SEP] {evidence tokens} [SEP]
-            self.dataset["claims"][idx],
+            # NOTE: evidence (premise) should come before claims (hypothesis)
+            # - Gives better zero-shot predictions on the toy dataset (see README.md) and SciFact
             self.dataset["evidences"][idx],
+            self.dataset["claims"][idx],
             padding="max_length",
             max_length=self.max_length,
             return_tensors="pt",
