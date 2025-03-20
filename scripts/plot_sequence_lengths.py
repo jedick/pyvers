@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 fig, axs = plt.subplots(1, 2, figsize=(8, 4))
 
 datasets = ["scifact", "citint"]
+titles = ["SciFact", "CitInt"]
 for i in range(len(datasets)):
     dm = FileDataModule("bert-base-uncased", f"data/{datasets[i]}", max_length=1024)
     dm.setup("fit")
@@ -23,7 +24,7 @@ for i in range(len(datasets)):
 
     # Plot histogram
     axs[i].hist(seq_len)
-    axs[i].set_title(f"{datasets[i]}")
+    axs[i].set_title(f"{titles[i]}")
     axs[i].set_xlabel("Sequence length (tokens)")
     axs[i].set_ylabel("Count")
 
