@@ -49,12 +49,18 @@ class PyversClassifier(pl.LightningModule):
         # Metrics
         self.train_accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes)
         self.val_accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes)
-        self.test_accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes)
+        # Keep F1 for test split separate in order to log individual classes
         self.test_f1 = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average=None)
-        self.test_f1_micro = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="micro")
-        self.test_f1_macro = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="macro")
-        self.test_AUROC_macro = torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="macro")
-        self.test_AUROC_weighted = torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="weighted")
+        # For remaining test metrics, use MetricCollection
+        self.test_metrics = torchmetrics.MetricCollection(
+            {
+                "Accuracy": torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes),
+                "F1 Micro": torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="micro"),
+                "F1 Macro": torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="macro"),
+                "AUROC Macro": torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="macro"),
+                "AUROC Weighted": torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="weighted"),
+            },
+        )
 
         # Log train and val metrics to different directories to plot them on one graph in TensorBoard
         self.train_writer = SummaryWriter(os.path.join(self.hparams.tensorboard_logdir, "train"))
@@ -134,36 +140,19 @@ class PyversClassifier(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         outputs = self(**batch)
         y = batch.get("labels")
-        self.test_accuracy.update(outputs.logits, y)
         self.test_f1.update(outputs.logits, y)
-        self.test_f1_micro.update(outputs.logits, y)
-        self.test_f1_macro.update(outputs.logits, y)
-        self.test_AUROC_macro.update(outputs.logits, y)
-        self.test_AUROC_weighted.update(outputs.logits, y)
+        self.test_metrics.update(outputs.logits, y)
 
     def on_test_epoch_end(self):
-        test_accuracy = self.test_accuracy.compute()
-        self.log("Accuracy", self._percent(test_accuracy))
-        test_f1_micro = self.test_f1_micro.compute()
-        self.log("F1 Micro", self._percent(test_f1_micro))
-        test_f1_macro = self.test_f1_macro.compute()
-        self.log("F1 Macro", self._percent(test_f1_macro))
-        test_AUROC_macro = self.test_AUROC_macro.compute()
-        self.log("AUROC Macro", test_AUROC_macro)
-        test_AUROC_weighted = self.test_AUROC_weighted.compute()
-        self.log("AUROC Weighted", test_AUROC_weighted)
+        self.log_dict(self.test_metrics.compute())
         # Log F1 score for each class
         test_f1 = self.test_f1.compute()
         num_classes = len(self.hparams.id2label)
         for id in range(num_classes):
             label = self.hparams.id2label[id]
-            self.log(f"F1_{label}", self._percent(test_f1[id]))
-        self.test_accuracy.reset()
+            self.log(f"F1_{label}", test_f1[id])
         self.test_f1.reset()
-        self.test_f1_micro.reset()
-        self.test_f1_macro.reset()
-        self.test_AUROC_macro.reset()
-        self.test_AUROC_weighted.reset()
+        self.test_metrics.reset()
 
     def predict_step(self, batch, batch_idx):
         outputs = self(**batch)
