@@ -8,7 +8,7 @@ from .verisci import SciFactReader
 # HuggingFace datasets
 import datasets
 
-# Label IDs are chosen to be consistent with this pre-trained model:
+# Label IDs are consistent with this pre-trained model:
 #     https://huggingface.co/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli
 #     label_names = ["entailment", "neutral", "contradiction"]
 # SciFact: label2id = {"SUPPORT":0, "NEI":1, "REFUTE":2}
@@ -186,39 +186,40 @@ class ToyDataModule(pl.LightningDataModule):
     def predict_dataloader(self): 
         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
-class FeverDataModule(pl.LightningDataModule):
-    def __init__(self, model_name, batch_size=32, max_length=128):
+class NLIDataModule(pl.LightningDataModule):
+    """
+    Data module for NLI datasets - Fever, ANLI, and MNLI
+
+    dataset_name: HuggingFace dataset name, one of "copenlu/fever_gold_evidence", "facebook/anli"
+    model_name: HuggingFace model name, defaults to "bert-base-uncased"
+    batch_size: Batch size for data loader
+    max_length: Maximum sequence length for tokenizer
+    """
+    def __init__(self, dataset_name="facebook/anli", model_name="bert-base-uncased", batch_size=32, max_length=128):
         super().__init__()
-        self.dataset_name = "copenlu/fever_gold_evidence"
+        self.dataset_name = dataset_name
         self.model_name = model_name
         self.batch_size = batch_size
         self.max_length = max_length
         self.num_workers = 4
 
     def prepare_data(self):
-        # Download the dataset
+        # Download the dataset and tokenizer
         datasets.load_dataset(self.dataset_name)
+        AutoTokenizer.from_pretrained(self.model_name)
 
     def setup(self, stage=None):
         # Load the dataset
         dataset = datasets.load_dataset(self.dataset_name)
 
-        def get_data(fold):
-            claims = fold["claim"]
-            # The evidence list includes the page title, but we just want the evidence sentences
-            evidences = [item[0][2] for item in fold["evidence"]]
-            label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
-            labels = [label2id[label] for label in fold["label"]]
-            return {"claims":claims, "evidences":evidences, "labels":labels}
-
         if stage == "fit":
-            train_data = get_data(dataset["train"])
+            train_data = self.get_data(self.dataset_name, dataset, "train")
             self.train_dataset = PyversDataset(train_data, self.model_name, self.max_length)
-            val_data = get_data(dataset["validation"])
+            val_data = self.get_data(self.dataset_name, dataset, "val")
             self.val_dataset = PyversDataset(val_data, self.model_name, self.max_length)
 
         if stage == "test":
-            test_data = get_data(dataset["test"])
+            test_data = self.get_data(self.dataset_name, dataset, "test")
             self.test_dataset = PyversDataset(test_data, self.model_name, self.max_length)
 
     def train_dataloader(self):
@@ -229,4 +230,40 @@ class FeverDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+
+    @staticmethod
+    def get_data(dataset_name, dataset, fold):
+        """
+        Extracts data in consistent format from various datasets.
+        Uses fold (train, val or test) to extract specific split from dataset.
+        Uses same label encoding for all datasets.
+
+        dataset_name: HuggingFace dataset name
+        dataset: Dataset returned by datasets.load_dataset()
+        fold: Name of the fold used in PyTorch Lightning (train, val, or test)
+        """
+        if dataset_name == "copenlu/fever_gold_evidence":
+            if fold == "train":
+                split = dataset["train"]
+            if fold == "val":
+                split = dataset["validation"]
+            if fold == "test":
+                split = dataset["test"]
+            claims = split["claim"]
+            # The evidence list includes the page title, but we just want the evidence sentences
+            evidences = [item[0][2] for item in split["evidence"]]
+            label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
+            labels = [label2id[label] for label in split["label"]]
+            return {"claims":claims, "evidences":evidences, "labels":labels}
+        if dataset_name == "facebook/anli":
+            if fold == "train":
+                split = dataset["train_r3"]
+            if fold == "val":
+                split = dataset["dev_r3"]
+            if fold == "test":
+                split = dataset["test_r3"]
+            claims = split["hypothesis"]
+            evidences = split["premise"]
+            labels = split["label"]
+            return {"claims":claims, "evidences":evidences, "labels":labels}
 
