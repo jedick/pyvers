@@ -59,10 +59,10 @@ from pyvers.data import FileDataModule
 model_name = "bert-base-uncased"
 
 # Load data from one dataset
-dm = FileDataModule(model_name, "data/scifact")
+dm = FileDataModule("data/scifact", model_name)
 
-# Shuffle training data from SciFact and Citation-Integrity
-dm = FileDataModule(model_name, ["data/scifact", "data/citint"])
+# Shuffle training data from two datasets
+dm = FileDataModule(["data/scifact", "data/citint"], model_name)
 
 # Get some tokenized data
 dm.setup("fit")
@@ -75,7 +75,7 @@ The `pyvers.data.NLIDataModule` class loads data from HuggingFace datasets.
 from pyvers.data import NLIDataModule
 model_name = "bert-base-uncased"
 
-# To load data from HuggingFace datasets
+# Load data from HuggingFace datasets
 dm = NLIDataModule("facebook/anli", model_name)
 
 # Get some tokenized data

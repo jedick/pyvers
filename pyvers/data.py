@@ -8,13 +8,20 @@ from .verisci import SciFactReader
 # HuggingFace datasets
 import datasets
 
-# Label IDs are consistent with this pre-trained model:
-#     https://huggingface.co/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli
-#     label_names = ["entailment", "neutral", "contradiction"]
-# SciFact: label2id = {"SUPPORT":0, "NEI":1, "REFUTE":2}
-# Fever:   label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
 
 class PyversDataset(Dataset):
+    """
+    Pytorch dataset class.
+
+    Label IDs [0, 1, 2] correspond to ["entailment", "neutral", "contradiction"]
+    cf. SciFact: label2id = {"SUPPORT":0, "NEI":1, "REFUTE":2}
+    cf. Fever:   label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
+
+    Args:
+        dataset: Dictionary with "claims", "evidences", and "labels" tensors.
+        model_name: HuggingFace model name, e.g. "bert-base-uncased".
+        max_length: Maximum sequence length for tokenizer.
+    """
     def __init__(self, dataset, model_name, max_length):
         self.dataset = dataset
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -26,9 +33,9 @@ class PyversDataset(Dataset):
     def __getitem__(self, idx):
         encoding = self.tokenizer(
             # Tokenize a sequence pair as follows:
-            # [CLS] {claim tokens} [SEP] {evidence tokens} [SEP]
-            # NOTE: evidence (premise) should come before claims (hypothesis)
-            # - Gives better zero-shot predictions on the toy dataset (see README.md) and SciFact
+            # [CLS] {evidence tokens} [SEP] {claim tokens} [SEP]
+            # NOTE: evidence (premise) should come before claim (hypothesis);
+            # this gives better zero-shot predictions on the toy dataset (see README.md) and SciFact
             self.dataset["evidences"][idx],
             self.dataset["claims"][idx],
             padding="max_length",
@@ -44,10 +51,19 @@ class PyversDataset(Dataset):
         }
 
 class FileDataModule(pl.LightningDataModule): 
-    def __init__(self, model_name, directory="data/scifact", batch_size=32, max_length=512, use_val_for_test=False): 
+    """
+    Data module for local datasets - SciFact and Citation-Integrity.
+
+    Args:
+        directory: Path to directory for dataset, e.g. "data/scifact" or "data/citint".
+        model_name: HuggingFace model name, e.g. "bert-base-uncased".
+        batch_size: Batch size for data loader.
+        max_length: Maximum sequence length for tokenizer.
+    """
+    def __init__(self, directory, model_name, batch_size=32, max_length=512, use_val_for_test=False): 
         super().__init__() 
-        self.model_name = model_name
         self.directory = directory
+        self.model_name = model_name
         self.batch_size = batch_size
         self.max_length = max_length
         self.use_val_for_test = use_val_for_test
@@ -117,6 +133,14 @@ class FileDataModule(pl.LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
 class ToyDataModule(pl.LightningDataModule): 
+    """
+    Data module for toy dataset.
+
+    Args:
+        model_name: HuggingFace model name, e.g. "bert-base-uncased".
+        batch_size: Batch size for data loader.
+        max_length: Maximum sequence length for tokenizer.
+    """
     def __init__(self, model_name, batch_size=32, max_length=32): 
         super().__init__() 
         self.model_name = model_name
@@ -188,14 +212,15 @@ class ToyDataModule(pl.LightningDataModule):
 
 class NLIDataModule(pl.LightningDataModule):
     """
-    Data module for NLI datasets - Fever, ANLI, and MNLI
+    Data module for NLI datasets - Fever, ANLI, and MNLI.
 
-    dataset_name: HuggingFace dataset name, one of "copenlu/fever_gold_evidence", "facebook/anli"
-    model_name: HuggingFace model name, defaults to "bert-base-uncased"
-    batch_size: Batch size for data loader
-    max_length: Maximum sequence length for tokenizer
+    Args:
+        dataset_name: HuggingFace dataset name, one of "copenlu/fever_gold_evidence", "facebook/anli".
+        model_name: HuggingFace model name, e.g. "bert-base-uncased".
+        batch_size: Batch size for data loader.
+        max_length: Maximum sequence length for tokenizer.
     """
-    def __init__(self, dataset_name="facebook/anli", model_name="bert-base-uncased", batch_size=32, max_length=128):
+    def __init__(self, dataset_name, model_name, batch_size=32, max_length=128):
         super().__init__()
         self.dataset_name = dataset_name
         self.model_name = model_name
@@ -238,9 +263,10 @@ class NLIDataModule(pl.LightningDataModule):
         Uses fold (train, val or test) to extract specific split from dataset.
         Uses same label encoding for all datasets.
 
-        dataset_name: HuggingFace dataset name
-        dataset: Dataset returned by datasets.load_dataset()
-        fold: Name of the fold used in PyTorch Lightning (train, val, or test)
+        Args:
+            dataset_name: HuggingFace dataset name.
+            dataset: Dataset returned by datasets.load_dataset().
+            fold: Name of the fold used in PyTorch Lightning (train, val, or test).
         """
         if dataset_name == "copenlu/fever_gold_evidence":
             if fold == "train":

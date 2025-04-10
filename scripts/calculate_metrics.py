@@ -15,10 +15,10 @@ testdata = "scifact"
 trainer = pl.Trainer()
 
 # Make predictions on validation set
-dm = FileDataModule(model_name, f"data/{testdata}", batch_size=8, use_val_for_test=True)
+dm = FileDataModule(f"data/{testdata}", model_name, batch_size=8, use_val_for_test=True)
 trainer.test(model, datamodule=dm)
 
 # Make predictions on test set
-dm = FileDataModule(model_name, f"data/{testdata}", batch_size=8)
+dm = FileDataModule(f"data/{testdata}", model_name, batch_size=8)
 trainer.test(model, datamodule=dm)
 

@@ -10,7 +10,7 @@ fig, axs = plt.subplots(1, 2, figsize=(8, 4))
 datasets = ["scifact", "citint"]
 titles = ["SciFact", "CitInt"]
 for i in range(len(datasets)):
-    dm = FileDataModule("bert-base-uncased", f"data/{datasets[i]}", max_length=1024)
+    dm = FileDataModule(f"data/{datasets[i]}", "bert-base-uncased", max_length=1024)
     dm.setup("fit")
     dl = iter(dm.train_dataloader())
     # Place to hold sequence lengths

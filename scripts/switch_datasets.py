@@ -18,7 +18,7 @@ csv_logger = CSVLogger("experiments", name="switch_datasets")
 model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 model = PyversClassifier(model_name, tensorboard_logdir=f"experiments/switch_datasets")
 # Train on first dataset for 10 epochs
-dm = FileDataModule(model_name, f"data/{first}", batch_size=8)
+dm = FileDataModule(f"data/{first}", model_name, batch_size=8)
 trainer = pl.Trainer(
     enable_checkpointing=False,
     logger=csv_logger,
@@ -31,7 +31,7 @@ trainer.save_checkpoint(f"~/.checkpoints/pyvers/{first}.ckpt")
 
 # Train on second dataset for 10 epochs
 model = PyversClassifier(model_name, tensorboard_logdir=f"experiments/switch_datasets")
-dm = FileDataModule(model_name, f"data/{second}", batch_size=8)
+dm = FileDataModule(f"data/{second}", model_name, batch_size=8)
 # We set max_epochs=20 because the trainer starts from the last training step in the checkpoint
 trainer = pl.Trainer(
     enable_checkpointing=False,
