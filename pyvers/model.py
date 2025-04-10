@@ -39,8 +39,6 @@ class PyversClassifier(pl.LightningModule):
         config.label2id = label2id
         # HuggingFace pretrained models are in eval mode by default (Dropout modules are deactivated)
         #   https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained
-        # Lightning doesn't put the model in train mode at the beginning of training
-        #   https://github.com/Lightning-AI/pytorch-lightning/pull/18951
         # We have to put the model in train mode to make dropout work
         #   https://github.com/Lightning-AI/pytorch-lightning/issues/20105
         #   https://github.com/Lightning-AI/pytorch-lightning/issues/20646
@@ -156,8 +154,8 @@ class PyversClassifier(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         outputs = self(**batch)
-        predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
-        predicted_ids = torch.argmax(predictions, dim=1).tolist()
+        probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1)
+        predicted_ids = torch.argmax(probabilities, dim=1).tolist()
         predicted_labels = [self.hparams.id2label[id] for id in predicted_ids]
         return predicted_labels
 

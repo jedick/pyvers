@@ -4,3 +4,4 @@
 - `switch_datasets.py`: Train a model for 10 epochs on one dataset, then continue training for 10 epochs on a second dataset
 - `shuffle_datasets.py`: Train a model for 10 epochs on shuffled training data from two datasets
 - `calculate_metrics.py`: Calculate metrics on validation and test sets using previously saved checkpoints
+- `ckpt_to_pretrained.py`: Convert checkpoint saved by PyTorch Lightning to model files that can be loaded with `AutoModelForSequenceClassification` from HuggingFace transformers.
