@@ -45,11 +45,14 @@ Screenshot:
 
 Install pyvers if you want to fine-tune models or use the data modules.
 
-These commands install the requirements, then the pyvers package in [development mode](https://setuptools.pypa.io/en/latest/userguide/development_mode.html) (remove the `-e` for a standard installation).
+Run these commands in the root directory of the repository.
+- The first command installs the requirements.
+- The second command install the pyvers package in [development mode](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
+  - Remove the `-e` for a standard installation.
 
 ```
 pip install -r requirements.txt
-pip install -e pyvers
+pip install -e .
 ```
 ## Loading data
 

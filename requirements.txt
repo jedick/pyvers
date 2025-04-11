@@ -3,3 +3,4 @@ pytorch_lightning
 transformers
 datasets
 torchmetrics
+tensorboard

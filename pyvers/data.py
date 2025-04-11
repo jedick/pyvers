@@ -2,7 +2,6 @@ import torch
 import pytorch_lightning as pl
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
-from multivers.data_train import SciFactReader
 # For reading data from jsonl files
 from .verisci import SciFactReader
 # HuggingFace datasets
