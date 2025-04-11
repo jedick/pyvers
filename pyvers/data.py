@@ -8,7 +8,6 @@ from .verisci import SciFactReader
 # HuggingFace datasets
 import datasets
 
-
 class PyversDataset(Dataset):
     """
     Pytorch dataset class.
@@ -59,6 +58,7 @@ class FileDataModule(pl.LightningDataModule):
         model_name: HuggingFace model name, e.g. "bert-base-uncased".
         batch_size: Batch size for data loader.
         max_length: Maximum sequence length for tokenizer.
+        use_val_for_test: Whether to use the validation set as the test set.
     """
     def __init__(self, directory, model_name, batch_size=32, max_length=512, use_val_for_test=False): 
         super().__init__() 
@@ -215,17 +215,19 @@ class NLIDataModule(pl.LightningDataModule):
     Data module for NLI datasets - Fever, ANLI, and MNLI.
 
     Args:
-        dataset_name: HuggingFace dataset name, one of "copenlu/fever_gold_evidence", "facebook/anli".
+        dataset_name: HuggingFace dataset name, one of "copenlu/fever_gold_evidence", "facebook/anli", or "nyu-mll/multi_nli".
         model_name: HuggingFace model name, e.g. "bert-base-uncased".
         batch_size: Batch size for data loader.
         max_length: Maximum sequence length for tokenizer.
+        test_fold: Which fold to use for testing - train, val, or test (default).
     """
-    def __init__(self, dataset_name, model_name, batch_size=32, max_length=128):
+    def __init__(self, dataset_name, model_name, batch_size=32, max_length=128, test_fold="test"):
         super().__init__()
         self.dataset_name = dataset_name
         self.model_name = model_name
         self.batch_size = batch_size
         self.max_length = max_length
+        self.test_fold = test_fold
         self.num_workers = 4
 
     def prepare_data(self):
@@ -244,7 +246,7 @@ class NLIDataModule(pl.LightningDataModule):
             self.val_dataset = PyversDataset(val_data, self.model_name, self.max_length)
 
         if stage == "test":
-            test_data = self.get_data(self.dataset_name, dataset, "test")
+            test_data = self.get_data(self.dataset_name, dataset, self.test_fold)
             self.test_dataset = PyversDataset(test_data, self.model_name, self.max_length)
 
     def train_dataloader(self):
@@ -280,8 +282,7 @@ class NLIDataModule(pl.LightningDataModule):
             evidences = [item[0][2] for item in split["evidence"]]
             label2id = {"SUPPORTS":0, "NOT ENOUGH INFO":1, "REFUTES":2}
             labels = [label2id[label] for label in split["label"]]
-            return {"claims":claims, "evidences":evidences, "labels":labels}
-        if dataset_name == "facebook/anli":
+        elif dataset_name == "facebook/anli":
             if fold == "train":
                 split = dataset["train_r3"]
             if fold == "val":
@@ -291,5 +292,17 @@ class NLIDataModule(pl.LightningDataModule):
             claims = split["hypothesis"]
             evidences = split["premise"]
             labels = split["label"]
-            return {"claims":claims, "evidences":evidences, "labels":labels}
+        elif dataset_name == "nyu-mll/multi_nli":
+            if fold == "train":
+                split = dataset["train"]
+            if fold == "val":
+                split = dataset["validation_matched"]
+            if fold == "test":
+                split = dataset["validation_mismatched"]
+            claims = split["hypothesis"]
+            evidences = split["premise"]
+            labels = split["label"]
+        else:
+            raise ValueError(f"Unsupported dataset: ", dataset_name)
 
+        return {"claims":claims, "evidences":evidences, "labels":labels}

@@ -1,14 +1,18 @@
 # pyvers
 A Python package and app for training and running claim verification models.
+The task of claim verification is to classify the relationship between a *claim* and *evidence* statements (also referred to as *hypothesis* and *premise*), with applications ranging from fact-checking to citation accuracy verification.
 
 ## Features
 
 - Web app
-  - Based on LitServe and Gradio.
+    - Built with [LitServe](https://github.com/Lightning-AI/litserve/) and [Gradio](https://github.com/gradio-app/gradio).
+- Data Modules
+	- Support for local files and [HuggingFace datasets](https://huggingface.co/docs/hub/en/datasets).
+	- Consistent label encoding for different natural language inference (NLI) datasets (see [below](#label-to-id-mapping)).
+	- Supports [shuffling training data](https://github.com/jedick/pyvers/blob/main/scripts/shuffle_datasets.py) from multiple datasets for [improved generalization](https://jedick.github.io/blog/experimenting-with-transformer-models/#cross-dataset-generalization) across datasets.
 - Trainer
-	- Based on PyTorch Lightning.
+ 	- Training and data modules implemented with [PyTorch Lightning](https://github.com/Lightning-AI/pytorch-lightning).
     - Use any [pretrained sequence classification model](https://huggingface.co/docs/transformers/model_doc/auto#transformers.AutoModelForSequenceClassification) from HuggingFace.
-    - Supports [shuffling training data](https://github.com/jedick/pyvers/blob/main/scripts/shuffle_datasets.py) from multiple datasets for [improved generalization performance](https://jedick.github.io/blog/experimenting-with-transformer-models/#cross-dataset-generalization) across datasets.
     - Logger is configured to plot training and validation loss on the [same graph in TensorBoard](https://jedick.github.io/blog/experimenting-with-transformer-models/#the-paradox-of-rising-loss-and-improving-accuracy).
 
 ## Running the app
@@ -29,7 +33,7 @@ App usage:
 - Input a claim and evidence ([example](https://huggingface.co/datasets/nyu-mll/multi_nli/viewer/default/train?row=37&views%5B%5D=train)).
 - Hit "Enter" or press the Submit button to run the inference.
 - The probabilities predicted by the model are printed in the Classification text box and visualized in the barchart.
-- Change the model using the dropdown at the top. This automatically re-runs the inference using the new model.
+- Change the model using the dropdown at the top. This automatically re-runs the inference using the selected model.
 
 Screenshot:
 
@@ -38,7 +42,6 @@ Screenshot:
 ## Installation
 
 Install pyvers if you want to fine-tune models or use the data modules.
-Supported datasets are [Fever](https://huggingface.co/datasets/fever/fever), [SciFact](https://github.com/allenai/scifact), [Citation-Integrity](https://github.com/ScienceNLP-Lab/Citation-Integrity/), and a small toy dataset.
 
 These commands install the requirements, then the pyvers package in [development mode](https://setuptools.pypa.io/en/latest/userguide/development_mode.html) (remove the `-e` for a standard installation).
 
@@ -48,10 +51,12 @@ pip install -e pyvers
 ```
 ## Loading data
 
-The `pyvers.data.FileDataModule` class loads data from local data files in JSON lines format (jsonl).
-The schema for the data files is described [here](https://github.com/dwadden/multivers/blob/main/doc/data.md).
-Get data files for SciFact and Citation-Integrity with labels used in pyvers [here](https://github.com/jedick/AI4citations/tree/main/data).
-The data module can be used to shuffle training data from both datasets.
+### `pyvers.data.FileDataModule`
+- This class loads data from local data files in JSON lines format (jsonl).
+- Supported datasets include [SciFact](https://github.com/allenai/scifact) and [Citation-Integrity](https://github.com/ScienceNLP-Lab/Citation-Integrity/).
+- The schema for the data files is described [here](https://github.com/dwadden/multivers/blob/main/doc/data.md).
+- Get data files for SciFact and Citation-Integrity with labels used in pyvers [here](https://github.com/jedick/AI4citations/tree/main/data).
+- The data module can be used to shuffle training data from both datasets.
 
 ```python
 from pyvers.data import FileDataModule
@@ -69,7 +74,12 @@ dm.setup("fit")
 next(iter(dm.train_dataloader()))
 ```
 
-The `pyvers.data.NLIDataModule` class loads data from HuggingFace datasets.
+### `pyvers.data.NLIDataModule`
+- This class loads data from selected HuggingFace datasets.
+- Supported datasets are
+[copenlu/fever_gold_evidence](https://huggingface.co/datasets/copenlu/fever_gold_evidence),
+[facebook/anli](https://huggingface.co/datasets/facebook/anli), and
+[nyu-mll/multi_nli](https://huggingface.co/datasets/nyu-mll/multi_nli).
 
 ```python
 from pyvers.data import NLIDataModule
@@ -83,6 +93,10 @@ dm.prepare_data()
 dm.setup("fit")
 next(iter(dm.train_dataloader()))
 ```
+
+### `pyvers.data.ToyDataModule`
+- This is a small handmade toy dataset.
+- There are no data files; the dataset is hard-coded in the class definition
 
 ## Fine-tuning example
 
@@ -151,7 +165,6 @@ print(predictions)
 
 The pretrained model successfully distinguishes between SUPPORT and REFUTE on the toy dataset but misclassifies NEI as REFUTE.
 This can be improved with fine-tuning.
-
 
 *When using a pre-trained model for zero-shot classification, check the mapping between labels and IDs.*
 
