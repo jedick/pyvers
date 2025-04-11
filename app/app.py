@@ -48,7 +48,7 @@ with gr.Blocks() as app:
                 choices=[
                     "bert-base-uncased",
                     "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
-                    "/home/pyvers/DeBERTa-v3-base-mnli-fever-anli-scifact-citint",
+                    "jedick/DeBERTa-v3-base-mnli-fever-anli-scifact-citint",
                 ],
             )
             input_claim = gr.Textbox(label="Enter the claim (or hypothesis)")

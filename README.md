@@ -1,6 +1,8 @@
 # pyvers
 A Python package and app for training and running claim verification models.
-The task of claim verification is to classify the relationship between a *claim* and *evidence* statements (also referred to as *hypothesis* and *premise*), with applications ranging from fact-checking to citation accuracy verification.
+
+Claim verification is a task in natural language processing (NLP) with applications ranging from fact-checking to verifying the accuracy of scientific citations.
+The models used in this package are based on the transformer deep-learning architecture.
 
 ## Features
 
@@ -9,7 +11,7 @@ The task of claim verification is to classify the relationship between a *claim*
 - Data Modules
 	- Support for local files and [HuggingFace datasets](https://huggingface.co/docs/hub/en/datasets).
 	- Consistent label encoding for different natural language inference (NLI) datasets (see [below](#label-to-id-mapping)).
-	- Supports [shuffling training data](https://github.com/jedick/pyvers/blob/main/scripts/shuffle_datasets.py) from multiple datasets for [improved generalization](https://jedick.github.io/blog/experimenting-with-transformer-models/#cross-dataset-generalization) across datasets.
+	- Supports [shuffling training data](https://github.com/jedick/pyvers/blob/main/scripts/shuffle_datasets.py) from multiple datasets for [improved model generalization](https://jedick.github.io/blog/experimenting-with-transformer-models/#cross-dataset-generalization).
 - Trainer
  	- Training and data modules implemented with [PyTorch Lightning](https://github.com/Lightning-AI/pytorch-lightning).
     - Use any [pretrained sequence classification model](https://huggingface.co/docs/transformers/model_doc/auto#transformers.AutoModelForSequenceClassification) from HuggingFace.
@@ -18,7 +20,7 @@ The task of claim verification is to classify the relationship between a *claim*
 ## Running the app
 
 There is no need to install pyvers to run the app.
-The `pip install` command takes care of the necessary requirements for the app.
+The `pip install` command takes care of the requirements for the app.
 Then, run the two `python` commands in different terminals.
 
 ```
@@ -96,7 +98,7 @@ next(iter(dm.train_dataloader()))
 
 ### `pyvers.data.ToyDataModule`
 - This is a small handmade toy dataset.
-- There are no data files; the dataset is hard-coded in the class definition
+- There are no data files; the dataset is hard-coded in the class definition.
 
 ## Fine-tuning example
 
