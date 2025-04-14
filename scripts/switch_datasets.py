@@ -42,4 +42,3 @@ trainer = pl.Trainer(
 trainer.fit(model, datamodule=dm, ckpt_path=f"~/.checkpoints/pyvers/{first}.ckpt")
 # Save checkpoint
 trainer.save_checkpoint(f"~/.checkpoints/pyvers/{first}_{second}.ckpt")
-

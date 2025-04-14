@@ -156,6 +156,7 @@ class GoldDataset:
 @dataclass
 class EvidenceAbstract:
     "A single evidence abstract."
+
     id: int
     label: Label
     rationales: List[List[int]]
@@ -223,18 +224,19 @@ class Claim:
                 for entry in kept:
                     print(f"\t- {entry}", file=file)
 
+
 ####################
 
 # Reader class modified from MultiVerS.
 
 
-class SciFactReader():
+class SciFactReader:
     """
     Class to handle SciFact data. Not used directly; its subclasses handle cases with
     different numbers of negative samples.
     """
 
-    def __init__(self, data_dir, debug = False):
+    def __init__(self, data_dir, debug=False):
         self.data_dir = data_dir
         self.debug = debug
         self.name = "SciFact"
@@ -292,4 +294,3 @@ class SciFactReader():
                 res.append(entry)
 
         return res
-

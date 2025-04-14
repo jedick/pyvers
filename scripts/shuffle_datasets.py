@@ -13,11 +13,15 @@ csv_logger = CSVLogger("experiments", name="shuffle_datasets")
 
 # Shuffle training data from two datasets
 directory = ["data/scifact", "data/citint"]
-dm = FileDataModule(directory, "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli", batch_size=8)
-model = PyversClassifier(dm.model_name, tensorboard_logdir="experiments/shuffle_datasets")
+dm = FileDataModule(
+    directory, "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli", batch_size=8
+)
+model = PyversClassifier(
+    dm.model_name, tensorboard_logdir="experiments/shuffle_datasets"
+)
 trainer = pl.Trainer(
     enable_checkpointing=False,
-    logger=csv_logger, 
+    logger=csv_logger,
     num_sanity_val_steps=0,
     max_epochs=10,
 )
@@ -25,4 +29,3 @@ trainer.fit(model, datamodule=dm)
 
 # Save checkpoint
 trainer.save_checkpoint(f"~/.checkpoints/pyvers/shuffle_datasets.ckpt")
-

@@ -2,6 +2,7 @@ import gradio as gr
 import requests
 import pandas as pd
 
+
 # Function to query the model
 def query_model(claim, evidence):
     url = "http://127.0.0.1:8000/predict"
@@ -9,31 +10,36 @@ def query_model(claim, evidence):
         "claim": claim,
         "evidence": evidence,
     }
-    response = requests.post(url, json = data)
+    response = requests.post(url, json=data)
     # Return the predictions
-    return(response.json()[0])
+    return response.json()[0]
+
 
 # Function to select the model
 def select_model(model_name):
     url = "http://127.0.0.1:8000/predict"
     data = {"model_name": model_name}
-    response = requests.post(url, json = data)
+    response = requests.post(url, json=data)
+
 
 # Function to get the current model
 def get_model():
     url = "http://127.0.0.1:8000/predict"
     data = {"model_name": ""}
-    response = requests.post(url, json = data)
+    response = requests.post(url, json=data)
     # Return the model name
-    return(response.json()[1])
+    return response.json()[1]
+
 
 # Use global state so correct model is shown after page refresh
 # https://github.com/gradio-app/gradio/issues/3173
 state = get_model()
 
+
 def update_state(model_name):
     global state
     state = model_name
+
 
 # Gradio interface setup
 with gr.Blocks() as app:
@@ -56,7 +62,7 @@ with gr.Blocks() as app:
             classification = gr.Textbox(label="Classification")
             query_button = gr.Button("Submit")
 
-        def classification_to_df(classification = None):
+        def classification_to_df(classification=None):
             if classification == "":
                 # This shows an empty plot for app initialization
                 class_dict = {"SUPPORT": 0, "NEI": 0, "REFUTE": 0}
@@ -67,9 +73,11 @@ with gr.Blocks() as app:
                 # Convert classifications (text result from API) to dictionary
                 class_dict = eval(classification)
             # Convert dictionary to DataFrame with one column (Probability)
-            df = pd.DataFrame.from_dict(class_dict, orient = "index", columns = ["Probability"])
+            df = pd.DataFrame.from_dict(
+                class_dict, orient="index", columns=["Probability"]
+            )
             # This moves the index to the Class column
-            return df.reset_index(names = "Class")
+            return df.reset_index(names="Class")
 
         with gr.Column(scale=1, min_width=300):
             barplot = gr.BarPlot(

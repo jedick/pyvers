@@ -2,24 +2,27 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from litserve import LitAPI, LitServer
 
+
 class PyversLitAPI(LitAPI):
-    def setup(self, device, model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"):
+    def setup(self, device, model_name="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"):
         """
         Load the tokenizer and model, and move the model to the specified device.
         """
         self.device = device
         self.model_name = model_name
-        
+
         # Instantiate tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # We have three classes for NLI (entailment, neutral, contradiction)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=3)
-        
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, num_labels=3
+        )
+
         # Move model to the device (e.g., CPU, GPU)
         self.model.to(device)
         # Set the model in evaluation mode
         self.model.eval()
-    
+
     def decode_request(self, request):
         """
         Process different requests:
@@ -30,7 +33,14 @@ class PyversLitAPI(LitAPI):
             return request
 
         # Assuming request is a dictionary with a "evidence" and "claim" fields
-        inputs = self.tokenizer(request["evidence"], request["claim"], return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs = self.tokenizer(
+            request["evidence"],
+            request["claim"],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+        )
         return inputs
 
     def predict(self, inputs):
@@ -47,7 +57,7 @@ class PyversLitAPI(LitAPI):
                 inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
                 outputs = self.model(**inputs)
             return outputs
-    
+
     def encode_response(self, outputs):
         """
         Process the model output into a response dictionary;
@@ -61,16 +71,16 @@ class PyversLitAPI(LitAPI):
             # Return probability for each of three classes
             response = {
                 "SUPPORT": probabilities[:, 0].item(),
-                "NEI": probabilities[:, 1].item(), 
-                "REFUTE": probabilities[:, 2].item(), 
+                "NEI": probabilities[:, 1].item(),
+                "REFUTE": probabilities[:, 2].item(),
             }
 
         return response, self.model_name
-        #return response
+        # return response
+
 
 if __name__ == "__main__":
-    
+
     api = PyversLitAPI()
     server = LitServer(api, devices=1)
     server.run(port=8000)
-

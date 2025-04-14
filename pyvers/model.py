@@ -8,11 +8,13 @@ from transformers import (
     AutoConfig,
     get_linear_schedule_with_warmup,
 )
-#import numpy as np
+
+# import numpy as np
+
 
 class PyversClassifier(pl.LightningModule):
     def __init__(
-        self, 
+        self,
         model_name: str,
         learning_rate: float = 2e-5,
         adam_epsilon: float = 1e-8,
@@ -20,8 +22,8 @@ class PyversClassifier(pl.LightningModule):
         warmup_steps: int = 0,
         hidden_dropout_prob: float = 0.1,
         attention_probs_dropout_prob: float = 0.1,
-        id2label: dict = {0:"SUPPORT", 1:"NEI", 2:"REFUTE"},
-        label2id: dict = {"SUPPORT":0, "NEI":1, "REFUTE":2},
+        id2label: dict = {0: "SUPPORT", 1: "NEI", 2: "REFUTE"},
+        label2id: dict = {"SUPPORT": 0, "NEI": 1, "REFUTE": 2},
         tensorboard_logdir: str = "tb_logs",
         **kwargs,
     ):
@@ -29,7 +31,7 @@ class PyversClassifier(pl.LightningModule):
 
         # Save hyperparameters (lets us use self.hparams)
         self.save_hyperparameters()
-        
+
         # Model
         num_classes = len(id2label)
         config = AutoConfig.from_pretrained(model_name, num_labels=num_classes)
@@ -42,27 +44,49 @@ class PyversClassifier(pl.LightningModule):
         # We have to put the model in train mode to make dropout work
         #   https://github.com/Lightning-AI/pytorch-lightning/issues/20105
         #   https://github.com/Lightning-AI/pytorch-lightning/issues/20646
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=config).train()
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, config=config
+        ).train()
 
         # Metrics
-        self.train_accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes)
-        self.val_accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes)
+        self.train_accuracy = torchmetrics.classification.Accuracy(
+            task="multiclass", num_classes=num_classes
+        )
+        self.val_accuracy = torchmetrics.classification.Accuracy(
+            task="multiclass", num_classes=num_classes
+        )
         # Keep F1 for test split separate in order to log individual classes
-        self.test_f1 = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average=None)
+        self.test_f1 = torchmetrics.classification.F1Score(
+            task="multiclass", num_classes=num_classes, average=None
+        )
         # For remaining test metrics, use MetricCollection
         self.test_metrics = torchmetrics.MetricCollection(
             {
-                "Accuracy": torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_classes),
-                "F1 Micro": torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="micro"),
-                "F1 Macro": torchmetrics.classification.F1Score(task="multiclass", num_classes=num_classes, average="macro"),
-                "AUROC Macro": torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="macro"),
-                "AUROC Weighted": torchmetrics.classification.AUROC(task="multiclass", num_classes=num_classes, average="weighted"),
+                "Accuracy": torchmetrics.classification.Accuracy(
+                    task="multiclass", num_classes=num_classes
+                ),
+                "F1 Micro": torchmetrics.classification.F1Score(
+                    task="multiclass", num_classes=num_classes, average="micro"
+                ),
+                "F1 Macro": torchmetrics.classification.F1Score(
+                    task="multiclass", num_classes=num_classes, average="macro"
+                ),
+                "AUROC Macro": torchmetrics.classification.AUROC(
+                    task="multiclass", num_classes=num_classes, average="macro"
+                ),
+                "AUROC Weighted": torchmetrics.classification.AUROC(
+                    task="multiclass", num_classes=num_classes, average="weighted"
+                ),
             },
         )
 
         # Log train and val metrics to different directories to plot them on one graph in TensorBoard
-        self.train_writer = SummaryWriter(os.path.join(self.hparams.tensorboard_logdir, "train"))
-        self.val_writer = SummaryWriter(os.path.join(self.hparams.tensorboard_logdir, "val"))
+        self.train_writer = SummaryWriter(
+            os.path.join(self.hparams.tensorboard_logdir, "train")
+        )
+        self.val_writer = SummaryWriter(
+            os.path.join(self.hparams.tensorboard_logdir, "val")
+        )
 
         self.train_losses = []
         self.val_losses = []
@@ -76,7 +100,7 @@ class PyversClassifier(pl.LightningModule):
             self.model.parameters(),
             lr=self.hparams.learning_rate,
             eps=self.hparams.adam_epsilon,
-            weight_decay=self.hparams.weight_decay
+            weight_decay=self.hparams.weight_decay,
         )
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
@@ -90,9 +114,9 @@ class PyversClassifier(pl.LightningModule):
     def _percent(x):
         ## TODO: How to log rounded values without extraneous decimals?
         ## float16 avoids long decimals but is not precise enough to be of use.
-        #x_float16 = np.float16(x.detach().cpu().numpy())
-        #return round(100*x_float16, 2)
-        return torch.round(100*x, decimals=2)
+        # x_float16 = np.float16(x.detach().cpu().numpy())
+        # return round(100*x_float16, 2)
+        return torch.round(100 * x, decimals=2)
 
     def _log_metrics(self, train_or_val, accuracy, losses, writer):
         # Compute and log accuracy
@@ -122,7 +146,9 @@ class PyversClassifier(pl.LightningModule):
         return loss
 
     def on_train_epoch_end(self):
-        self._log_metrics("train", self.train_accuracy, self.train_losses, self.train_writer)
+        self._log_metrics(
+            "train", self.train_accuracy, self.train_losses, self.train_writer
+        )
 
     def validation_step(self, batch, batch_idx):
         outputs = self(**batch)
@@ -158,4 +184,3 @@ class PyversClassifier(pl.LightningModule):
         predicted_ids = torch.argmax(probabilities, dim=1).tolist()
         predicted_labels = [self.hparams.id2label[id] for id in predicted_ids]
         return predicted_labels
-

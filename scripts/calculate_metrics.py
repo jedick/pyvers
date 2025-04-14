@@ -7,7 +7,9 @@ from pyvers.model import PyversClassifier
 
 # Read checkpoint
 checkpoint = "shuffle_datasets"
-model = PyversClassifier.load_from_checkpoint(checkpoint_path=f"~/.checkpoints/pyvers/{checkpoint}.ckpt")
+model = PyversClassifier.load_from_checkpoint(
+    checkpoint_path=f"~/.checkpoints/pyvers/{checkpoint}.ckpt"
+)
 model_name = model.hparams.model_name
 
 # Setup dataset for testing
@@ -21,4 +23,3 @@ trainer.test(model, datamodule=dm)
 # Make predictions on test set
 dm = FileDataModule(f"data/{testdata}", model_name, batch_size=8)
 trainer.test(model, datamodule=dm)
-

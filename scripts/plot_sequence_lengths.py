@@ -19,8 +19,8 @@ for i in range(len(datasets)):
         # Convert tensor to np array
         input_ids = data_tensor["input_ids"].numpy()
         # Number of non-zero ids in each row
-        sequence_length = np.sum(input_ids != 0, axis = 1)
-        seq_len = np.concatenate((seq_len, sequence_length), axis = 0)
+        sequence_length = np.sum(input_ids != 0, axis=1)
+        seq_len = np.concatenate((seq_len, sequence_length), axis=0)
 
     # Plot histogram
     axs[i].hist(seq_len)
@@ -31,4 +31,3 @@ for i in range(len(datasets)):
 # Display the plots
 plt.tight_layout()
 plt.show()
-
