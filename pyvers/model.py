@@ -13,6 +13,22 @@ from transformers import (
 
 
 class PyversClassifier(pl.LightningModule):
+    """
+    Classifier for NLI datasets using HuggingFace models.
+
+    Args:
+        model_name: HuggingFace model name, e.g. "bert-base-uncased".
+        learning_rate: Learning rate for optimizer (2e-5).
+        adam_epsilon: Epsilon constant for numerical stability when gradient is close to zero (1e-8).
+        weight_decay: Weight decay (L2 regularization) (0.01).
+        warmup_steps: Number of warmup steps for learning rate scheduler (0).
+        hidden_dropout_prob: Probability of dropout for all fully connected layers (0.1).
+        attention_probs_dropout_prob: Probability of dropout for attention probabilities (0.1).
+        id2label: Dictionary mapping from class IDs to labels ({0: "SUPPORT", 1: "NEI", 2: "REFUTE"}).
+        label2id: Dictionary mapping from labels to class IDs ({"SUPPORT": 0, "NEI": 1, "REFUTE": 2}).
+        tensorboard_logdir: Directory for writing TensorBoard logs ("tb_logs").
+    """
+
     def __init__(
         self,
         model_name: str,
