@@ -2,7 +2,8 @@
 
 # pyvers
 
-A Python package for data processing and training of claim verification models.
+Python package for data processing and training of claim verification models.
+This package was developed as part of an [ML capstone project](https://github.com/jedick/ML-capstone-project).
 
 Claim verification is a task in natural language processing (NLP) with applications ranging from fact-checking to verifying the accuracy of scientific citations.
 The models used in this package are based on the transformer deep-learning architecture.
@@ -12,11 +13,11 @@ The models used in this package are based on the transformer deep-learning archi
 - Data Modules
 	- Support for local files and [HuggingFace datasets](https://huggingface.co/docs/hub/en/datasets).
 	- Consistent label encoding for different natural language inference (NLI) datasets (see [below](#label-to-id-mapping)).
-	- Supports [shuffling training data](https://github.com/jedick/pyvers/blob/main/scripts/shuffle_datasets.py) from multiple datasets for [improved model generalization](https://jedick.github.io/blog/experimenting-with-transformer-models/#cross-dataset-generalization).
+	- Supports [shuffling training data](https://github.com/jedick/pyvers/blob/main/scripts/shuffle_datasets.py) from multiple datasets for [improved model generalization](https://jedick.github.io/blog/experimenting-with-transformer-models-for-citation-verification/#cross-dataset-generalization).
 - Trainer
  	- Training and data modules implemented with [PyTorch Lightning](https://github.com/Lightning-AI/pytorch-lightning).
     - Use any [pretrained sequence classification model](https://huggingface.co/docs/transformers/model_doc/auto#transformers.AutoModelForSequenceClassification) from HuggingFace.
-    - Logger is configured to plot training and validation loss on the [same graph in TensorBoard](https://jedick.github.io/blog/experimenting-with-transformer-models/#the-paradox-of-rising-loss-and-improving-accuracy).
+    - Logger is configured to plot training and validation loss on the [same graph in TensorBoard](https://jedick.github.io/blog/experimenting-with-transformer-models-for-citation-verification/#the-paradox-of-rising-loss-and-improving-accuracy).
 
 ## Installation
 

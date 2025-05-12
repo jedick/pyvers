@@ -27,7 +27,7 @@ trainer = pl.Trainer(
 )
 trainer.fit(model, datamodule=dm)
 # Save checkpoint
-trainer.save_checkpoint(f"~/.checkpoints/pyvers/{first}.ckpt")
+trainer.save_checkpoint(f"/home/pyvers/checkpoints/{first}.ckpt")
 
 # Train on second dataset for 10 epochs
 model = PyversClassifier(model_name, tensorboard_logdir=f"experiments/switch_datasets")
@@ -39,6 +39,6 @@ trainer = pl.Trainer(
     num_sanity_val_steps=0,
     max_epochs=20,
 )
-trainer.fit(model, datamodule=dm, ckpt_path=f"~/.checkpoints/pyvers/{first}.ckpt")
+trainer.fit(model, datamodule=dm, ckpt_path=f"/home/pyvers/checkpoints/{first}.ckpt")
 # Save checkpoint
-trainer.save_checkpoint(f"~/.checkpoints/pyvers/{first}_{second}.ckpt")
+trainer.save_checkpoint(f"/home/pyvers/checkpoints/{first}_{second}.ckpt")

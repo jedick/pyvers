@@ -28,4 +28,4 @@ trainer = pl.Trainer(
 trainer.fit(model, datamodule=dm)
 
 # Save checkpoint
-trainer.save_checkpoint(f"~/.checkpoints/pyvers/shuffle_datasets.ckpt")
+trainer.save_checkpoint(f"/home/pyvers/checkpoints/shuffle_datasets.ckpt")

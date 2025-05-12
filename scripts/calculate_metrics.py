@@ -8,7 +8,7 @@ from pyvers.model import PyversClassifier
 # Read checkpoint
 checkpoint = "shuffle_datasets"
 model = PyversClassifier.load_from_checkpoint(
-    checkpoint_path=f"~/.checkpoints/pyvers/{checkpoint}.ckpt"
+    checkpoint_path=f"/home/pyvers/checkpoints/{checkpoint}.ckpt"
 )
 model_name = model.hparams.model_name
 

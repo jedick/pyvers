@@ -5,7 +5,7 @@ from transformers import AutoTokenizer
 # as "pretrained" directory for loading with AutoModelForSequenceClassification.from_pretrained
 model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 model = PyversClassifier.load_from_checkpoint(
-    "/home/pyvers/checkpoints/shuffle2/shuffle_512_10epochs.ckpt"
+    "/home/pyvers/checkpoints/shuffle3/shuffle_512_10epochs.ckpt"
 )
 model.model.save_pretrained(
     "/home/pyvers/DeBERTa-v3-base-mnli-fever-anli-scifact-citint"
