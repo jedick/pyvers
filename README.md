@@ -3,7 +3,7 @@
 # pyvers
 
 Python package for data processing and training of claim verification models.
-This package was developed as part of an [ML capstone project](https://github.com/jedick/ML-capstone-project).
+This package was developed as part of an [ML engineering capstone project](https://github.com/jedick/MLE-capstone-project).
 
 Claim verification is a task in natural language processing (NLP) with applications ranging from fact-checking to verifying the accuracy of scientific citations.
 The models used in this package are based on the transformer deep-learning architecture.
@@ -23,7 +23,7 @@ The models used in this package are based on the transformer deep-learning archi
 
 Run these commands in the root directory of the repository.
 - The first command installs the requirements.
-- The second command install the pyvers package in [development mode](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
+- The second command installs the pyvers package in [development mode](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
   - Remove the `-e` for a standard installation.
 
 ```
@@ -38,7 +38,7 @@ pip install -e .
 - This class loads data from local data files in JSON lines format (jsonl).
 - Supported datasets include [SciFact](https://github.com/allenai/scifact) and [Citation-Integrity](https://github.com/ScienceNLP-Lab/Citation-Integrity/).
 - The schema for the data files is described [here](https://github.com/dwadden/multivers/blob/main/doc/data.md).
-- Get data files for SciFact and Citation-Integrity with labels used in pyvers [here](https://github.com/jedick/ML-capstone-project/tree/main/data).
+- Get data files for SciFact and Citation-Integrity with labels used in pyvers [here](https://github.com/jedick/MLE-capstone-project/tree/main/data).
 - The data module can be used to shuffle training data from both datasets.
 
 ```python
